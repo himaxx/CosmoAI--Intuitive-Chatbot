@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 // FIX: LiveSession is not an exported member of @google/genai.
 import type { LiveServerMessage } from '@google/genai';
@@ -21,6 +20,7 @@ const App: React.FC = () => {
   const outputAudioContextRef = useRef<AudioContext | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
 
   const nextStartTimeRef = useRef<number>(0);
   const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
@@ -181,6 +181,15 @@ const App: React.FC = () => {
       handleStop();
     };
   }, [handleStop]);
+
+  useEffect(() => {
+    if (transcriptContainerRef.current) {
+        transcriptContainerRef.current.scrollTo({
+            top: transcriptContainerRef.current.scrollHeight,
+            behavior: 'smooth',
+        });
+    }
+  }, [transcript]);
   
   const handleOrbClick = () => {
     if (connectionState === ConnectionState.IDLE || connectionState === ConnectionState.DISCONNECTING) {
@@ -196,13 +205,6 @@ const App: React.FC = () => {
   if (connectionState === ConnectionState.CONNECTING) orbState = 'listening';
   if (isListening) orbState = 'listening';
   if (isSpeaking) orbState = 'speaking';
-
-  const lastTurn = transcript.filter(t => t.text.trim() !== '').pop();
-  const displayText =
-    connectionState === ConnectionState.IDLE
-      ? 'Tap the orb and ask about the cosmos'
-      : (lastTurn?.text || 'Tell me about Neutron Stars.');
-
 
   let statusText = "";
   if (connectionState === ConnectionState.CONNECTING) statusText = "Connecting...";
@@ -227,10 +229,35 @@ const App: React.FC = () => {
       </header>
       <main className="relative z-10 flex flex-1 flex-col justify-center items-center px-4 pb-4 pt-0">
         <div className="flex flex-col items-center justify-center w-full flex-1 space-y-6">
-          <div className="w-full max-w-2xl text-center flex-grow flex flex-col justify-end items-center pb-6 min-h-[120px]">
-            <p className="text-2xl md:text-3xl font-medium leading-normal text-center glowing-text transition-all duration-500">
-              {displayText}
-            </p>
+          <div 
+            ref={transcriptContainerRef}
+            className="w-full max-w-2xl flex flex-col gap-4 justify-end min-h-0 h-[25vh] max-h-[240px] overflow-y-auto transcript-scroll scroll-smooth pb-6 px-4"
+          >
+            {transcript.length === 0 ? (
+                <p className="text-2xl md:text-3xl font-medium leading-normal text-center glowing-text">
+                    {connectionState === ConnectionState.IDLE
+                    ? 'Tap the orb and ask about the cosmos'
+                    : (isListening ? 'Listening...' : 'Initializing...')}
+                </p>
+            ) : (
+                transcript.map((turn, index) => (
+                <div
+                    key={index}
+                    className={`flex flex-col max-w-[85%] p-3 rounded-xl text-left ${
+                    turn.speaker === 'user'
+                        ? 'bg-blue-900/50 self-end'
+                        : 'bg-purple-800/50 self-start'
+                    }`}
+                >
+                    <span className={`text-xs font-bold mb-1 ${
+                    turn.speaker === 'user' ? 'text-blue-300' : 'text-purple-300'
+                    }`}>
+                    {turn.speaker === 'user' ? 'You' : 'Cosmo'}
+                    </span>
+                    <p className="text-white/90 text-base leading-relaxed whitespace-pre-wrap">{turn.text}</p>
+                </div>
+                ))
+            )}
           </div>
           <div 
             className="relative w-full max-w-[300px] aspect-square flex items-center justify-center my-4 cursor-pointer"
