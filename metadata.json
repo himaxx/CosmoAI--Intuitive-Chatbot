@@ -1,0 +1,7 @@
+{
+  "name": "Cosmo Voice",
+  "description": "A futuristic voice-to-voice chatbot that provides knowledge about the cosmos in an interactive way using the Gemini 2.5 Native Audio (Live API).",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
